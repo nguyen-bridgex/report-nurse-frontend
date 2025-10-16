@@ -1,4 +1,5 @@
 import React from 'react';
+import { RichTextEditor } from './RichTextEditor';
 
 interface WeeklyRecordSectionProps {
   weekNumber: number;
@@ -22,35 +23,26 @@ export const WeeklyRecordSection: React.FC<WeeklyRecordSectionProps> = ({
       </h4>
       <div className="space-y-3">
         <div>
-          <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+          <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
             Nsが行った訪問看護記録
           </label>
-          <textarea
-            value={nsValue}
-            onChange={(e) => onNsChange(e.target.value)}
-            rows={3}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
-                       focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                       dark:bg-gray-900 dark:text-white
-                       transition-all duration-200 resize-none text-sm"
+          <RichTextEditor
+            content={nsValue}
+            onChange={onNsChange}
+            placeholder="Nsが行った訪問看護記録を入力してください"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+          <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
             PT・OT・STが行った訪問看護記録
           </label>
-          <textarea
-            value={ptValue}
-            onChange={(e) => onPtChange(e.target.value)}
-            rows={3}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
-                       focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                       dark:bg-gray-900 dark:text-white
-                       transition-all duration-200 resize-none text-sm"
+          <RichTextEditor
+            content={ptValue}
+            onChange={onPtChange}
+            placeholder="PT・OT・STが行った訪問看護記録を入力してください"
           />
         </div>
       </div>
     </div>
   );
 };
-

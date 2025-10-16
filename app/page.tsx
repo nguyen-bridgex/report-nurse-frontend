@@ -3,9 +3,9 @@
 import React, { useState } from 'react';
 import { TextAreaField } from './components/TextAreaField';
 import { WeeklyRecordSection } from './components/WeeklyRecordSection';
+import { RecordData, SearchDialog } from './components/SearchDialog';
 
 interface PreviousMonthData {
-  sampleDataName: string;
   diseaseProgress: string;
   nursingContent: string;
   homeCareStatus: string;
@@ -19,20 +19,20 @@ interface PreviousMonthData {
 }
 
 interface CurrentMonthData {
-  sampleDataName: string;
   diseaseProgress: string;
   nursingContent: string;
   homeCareStatus: string;
   familyRelations: string;
   specialNotes: string;
+  ptOtStContent: string;
   feedback: string;
 }
 
 export default function Home() {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
+  const [sampleDataName, setSampleDataName] = useState('');
   
   const [previousMonth, setPreviousMonth] = useState<PreviousMonthData>({
-    sampleDataName: '',
     diseaseProgress: '',
     nursingContent: '',
     homeCareStatus: '',
@@ -46,27 +46,70 @@ export default function Home() {
   });
 
   const [currentMonth, setCurrentMonth] = useState<CurrentMonthData>({
-    sampleDataName: '',
     diseaseProgress: '',
     nursingContent: '',
     homeCareStatus: '',
     familyRelations: '',
     specialNotes: '',
+    ptOtStContent: '',
     feedback: '',
   });
 
   const handleSearch = () => {
-    console.log('検索:', searchQuery);
-    // Implement search logic here
+    setIsSearchDialogOpen(true);
+  };
+
+  const handleSelectRecord = (record: RecordData) => {
+    // Populate previous month data from the selected record
+    setPreviousMonth({
+      diseaseProgress: record.diseaseProgress,
+      nursingContent: record.nursingContent,
+      homeCareStatus: record.homeCareStatus,
+      familyRelations: record.familyRelations,
+      specialNotes: record.specialNotes,
+      ptOtStContent: record.ptOtStContent,
+      weeklyRecords: {
+        ns: [
+          record.weeklyRecords.week1Ns,
+          record.weeklyRecords.week2Ns,
+          record.weeklyRecords.week3Ns,
+          record.weeklyRecords.week4Ns,
+        ],
+        ptOtSt: [
+          record.weeklyRecords.week1Pt,
+          record.weeklyRecords.week2Pt,
+          record.weeklyRecords.week3Pt,
+          record.weeklyRecords.week4Pt,
+        ],
+      },
+    });
+
+    console.log('レコード選択:', record.sampleDataName);
   };
 
   const handleRegister = () => {
-    console.log('登録:', currentMonth);
+    console.log('=== 登録データ ===');
+    console.log('Sample Data Name:', sampleDataName);
+    console.log('Current Month Data:', currentMonth);
+    console.log('Previous Month Data:', previousMonth);
+    console.log('\n=== Weekly Records (HTML format) ===');
+    previousMonth.weeklyRecords.ns.forEach((record, index) => {
+      if (record) {
+        console.log(`Week ${index + 1} - Ns Record (HTML):`, record);
+      }
+    });
+    previousMonth.weeklyRecords.ptOtSt.forEach((record, index) => {
+      if (record) {
+        console.log(`Week ${index + 1} - PT/OT/ST Record (HTML):`, record);
+      }
+    });
     // Implement register logic here
   };
 
   const handleGenerateAIReport = () => {
-    console.log('AI報告書生成');
+    console.log('=== AI報告書生成 ===');
+    console.log('Previous Month Data (including formatted weekly records):', previousMonth);
+    console.log('Current Month Data:', currentMonth);
     // Implement AI report generation logic here
   };
 
@@ -75,36 +118,9 @@ export default function Home() {
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 shadow-md border-b border-gray-200 dark:border-gray-700">
         <div className="container mx-auto px-6 py-4">
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-4">
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
             AI 報告書テスト画面イメージ
           </h1>
-          
-          {/* Search Section */}
-          <div className="flex gap-3 items-end">
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                サンプルデータ名
-              </label>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="サンプルデータ名を入力してください"
-                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg 
-                           focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                           dark:bg-gray-700 dark:text-white
-                           transition-all duration-200"
-              />
-            </div>
-            <button
-              onClick={handleSearch}
-              className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg
-                         transition-all duration-200 shadow-md hover:shadow-lg
-                         active:scale-95"
-            >
-              検索
-            </button>
-          </div>
         </div>
       </header>
 
@@ -114,20 +130,21 @@ export default function Home() {
           {/* Left Pane - Previous Month */}
           <div className="space-y-6">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-              <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6 pb-3 border-b-2 border-blue-500">
-                前月の訪問看護報告書
-              </h2>
+              <div className="flex justify-between items-center mb-6 pb-3 border-b-2 border-blue-500">
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+                  前月の訪問看護報告書
+                </h2>
+                <button
+                  onClick={handleSearch}
+                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg
+                             transition-all duration-200 shadow-md hover:shadow-lg
+                             active:scale-95 flex-shrink-0"
+                >
+                  検索
+                </button>
+              </div>
               
               <div className="space-y-4">
-                <TextAreaField
-                  label="サンプルデータ名"
-                  value={previousMonth.sampleDataName}
-                  onChange={(value) =>
-                    setPreviousMonth({ ...previousMonth, sampleDataName: value })
-                  }
-                  rows={2}
-                />
-                
                 <TextAreaField
                   label="病状の経過"
                   value={previousMonth.diseaseProgress}
@@ -227,14 +244,7 @@ export default function Home() {
               </h2>
               
               <div className="space-y-4">
-                <TextAreaField
-                  label="サンプルデータ名"
-                  value={currentMonth.sampleDataName}
-                  onChange={(value) =>
-                    setCurrentMonth({ ...currentMonth, sampleDataName: value })
-                  }
-                  rows={2}
-                />
+                
                 
                 <TextAreaField
                   label="病状の経過"
@@ -287,6 +297,16 @@ export default function Home() {
                 />
                 
                 <TextAreaField
+                  label="PT・OT・STが行った訪問看護、家族等への指導、リスク管理等の内容"
+                  value={currentMonth.ptOtStContent}
+                  onChange={(value) =>
+                    setCurrentMonth({ ...currentMonth, ptOtStContent: value })
+                  }
+                  rows={4}
+                  placeholder="PT・OT・STが行った訪問看護、家族等への指導、リスク管理等の内容を入力してください"
+                />
+                
+                <TextAreaField
                   label="フィードバック"
                   value={currentMonth.feedback}
                   onChange={(value) =>
@@ -295,6 +315,22 @@ export default function Home() {
                   rows={4}
                   placeholder="フィードバックを入力してください"
                 />
+
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    サンプルデータ名
+                  </label>
+                  <input
+                    type="text"
+                    value={sampleDataName}
+                    onChange={(e) => setSampleDataName(e.target.value)}
+                    placeholder="サンプルデータ名を入力してください（例：田中太郎_20241115_01）"
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg 
+                               focus:ring-2 focus:ring-purple-500 focus:border-transparent
+                               dark:bg-gray-900 dark:text-white
+                               transition-all duration-200"
+                  />
+                </div>
               </div>
 
               {/* Action Buttons */}
@@ -321,6 +357,14 @@ export default function Home() {
           </div>
         </div>
       </main>
+
+      {/* Search Dialog */}
+      <SearchDialog
+        isOpen={isSearchDialogOpen}
+        onClose={() => setIsSearchDialogOpen(false)}
+        onSelect={handleSelectRecord}
+        searchQuery=""
+      />
     </div>
   );
 }
