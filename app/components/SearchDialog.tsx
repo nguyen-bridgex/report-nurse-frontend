@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 
 export interface RecordData {
   id: string;
@@ -36,7 +35,7 @@ interface ApiWeeklyReport {
   id: string;
   title: string;
   content: string;
-  type: 'NS' | 'PT・OT・ST';
+  type: string;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -62,11 +61,6 @@ interface ApiRecord {
   weekly_reports: ApiWeeklyReports[];
 }
 
-interface ApiResponse {
-  items: ApiRecord[];
-}
-
-const API_URL = 'https://c3jh0qba9f.execute-api.ap-northeast-1.amazonaws.com/prod/nursing-reports';
 
 // Map API response to RecordData format
 const mapApiRecordToRecordData = (apiRecord: ApiRecord): RecordData => {
@@ -132,8 +126,72 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
     setError(null);
     
     try {
-      const response = await axios.get<ApiResponse>(API_URL);
-      const mappedRecords = response.data.items.map(mapApiRecordToRecordData);
+      const response = {
+    "items": [
+        {
+            "id": "1",
+            "title": "田中太郎_20241015_01",
+            "illness_course": "糖尿病の管理が良好。血糖値は安定しており、インスリン投与量は現状維持。",
+            "nursing_service": "血糖測定の指導を実施。インスリン自己注射の手技確認を行った。",
+            "home_care_situation": "家族のサポートが十分にあり、日常生活は自立している。食事管理も良好。",
+            "mental_style": "家族との関係は良好。配偶者が積極的にサポートしている。",
+            "special_notes": "次回訪問時に、足のケアについて指導予定。",
+            "contents": "ADL向上のためのリハビリを実施。歩行訓練を中心に行った。",
+            "created_at": "2025-10-20T13:08:44",
+            "updated_at": "2025-10-20T13:20:08",
+            "deleted_at": null,
+            "weekly_reports": [
+                {
+                    "week_number": 1,
+                    "reports": [
+                        {
+                            "id": "1",
+                            "title": "第1週",
+                            "content": "初回訪問。バイタルサイン測定、血糖値110mg/dl。状態良好。",
+                            "type": "NS",
+                            "created_at": "2025-10-20T22:19:25",
+                            "updated_at": "2025-10-20T22:19:28",
+                            "deleted_at": null
+                        },
+                        {
+                            "id": "",
+                            "title": "第1週",
+                            "content": "歩行訓練実施。10分間の歩行が可能。",
+                            "type": "PT・OT・ST",
+                            "created_at": "2025-10-20T13:20:45",
+                            "updated_at": "2025-10-20T13:20:45",
+                            "deleted_at": null
+                        }
+                    ]
+                },
+                {
+                    "week_number": 2,
+                    "reports": [
+                        {
+                            "id": "3",
+                            "title": "第2週",
+                            "content": "血糖値測定指導。自己測定の手技を確認。",
+                            "type": "NS",
+                            "created_at": "2025-10-20T22:21:19",
+                            "updated_at": "2025-10-20T22:21:21",
+                            "deleted_at": null
+                        },
+                        {
+                            "id": "4",
+                            "title": "第2週",
+                            "content": "バランス訓練追加。転倒リスク軽減のため。",
+                            "type": "PT・OT・ST",
+                            "created_at": "2025-10-20T22:21:55",
+                            "updated_at": "2025-10-20T22:21:58",
+                            "deleted_at": null
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+      const mappedRecords = response.items.map(mapApiRecordToRecordData);
       setRecords(mappedRecords);
     } catch (err) {
       console.error('Failed to fetch records:', err);

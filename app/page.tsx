@@ -2,8 +2,14 @@
 
 import React, { useState } from 'react';
 import { TextAreaField } from './components/TextAreaField';
-import { WeeklyRecordSection } from './components/WeeklyRecordSection';
+import { SessionRecordSection } from './components/SessionRecordSection';
 import { RecordData, SearchDialog } from './components/SearchDialog';
+
+interface SessionRecord {
+  id: string;
+  ns: string;
+  ptOtSt: string;
+}
 
 interface PreviousMonthData {
   diseaseProgress: string;
@@ -12,10 +18,7 @@ interface PreviousMonthData {
   familyRelations: string;
   specialNotes: string;
   ptOtStContent: string;
-  weeklyRecords: {
-    ns: string[];
-    ptOtSt: string[];
-  };
+  sessionRecords: SessionRecord[];
 }
 
 interface CurrentMonthData {
@@ -39,10 +42,7 @@ export default function Home() {
     familyRelations: '',
     specialNotes: '',
     ptOtStContent: '',
-    weeklyRecords: {
-      ns: ['', '', '', ''],
-      ptOtSt: ['', '', '', ''],
-    },
+    sessionRecords: [],
   });
 
   const [currentMonth, setCurrentMonth] = useState<CurrentMonthData>({
@@ -59,8 +59,78 @@ export default function Home() {
     setIsSearchDialogOpen(true);
   };
 
+  const handleAddSession = () => {
+    const newSession: SessionRecord = {
+      id: Date.now().toString(),
+      ns: '',
+      ptOtSt: '',
+    };
+    setPreviousMonth({
+      ...previousMonth,
+      sessionRecords: [...previousMonth.sessionRecords, newSession],
+    });
+  };
+
+  const handleRemoveSession = (sessionId: string) => {
+    setPreviousMonth({
+      ...previousMonth,
+      sessionRecords: previousMonth.sessionRecords.filter(s => s.id !== sessionId),
+    });
+  };
+
+  const handleSessionNsChange = (sessionId: string, value: string) => {
+    setPreviousMonth({
+      ...previousMonth,
+      sessionRecords: previousMonth.sessionRecords.map(s =>
+        s.id === sessionId ? { ...s, ns: value } : s
+      ),
+    });
+  };
+
+  const handleSessionPtChange = (sessionId: string, value: string) => {
+    setPreviousMonth({
+      ...previousMonth,
+      sessionRecords: previousMonth.sessionRecords.map(s =>
+        s.id === sessionId ? { ...s, ptOtSt: value } : s
+      ),
+    });
+  };
+
   const handleSelectRecord = (record: RecordData) => {
     // Populate previous month data from the selected record
+    // Map weekly records to session records
+    const sessionRecords: SessionRecord[] = [];
+    
+    // Add sessions from weekly records
+    if (record.weeklyRecords.week1Ns || record.weeklyRecords.week1Pt) {
+      sessionRecords.push({
+        id: `week1-${Date.now()}`,
+        ns: record.weeklyRecords.week1Ns,
+        ptOtSt: record.weeklyRecords.week1Pt,
+      });
+    }
+    if (record.weeklyRecords.week2Ns || record.weeklyRecords.week2Pt) {
+      sessionRecords.push({
+        id: `week2-${Date.now()}`,
+        ns: record.weeklyRecords.week2Ns,
+        ptOtSt: record.weeklyRecords.week2Pt,
+      });
+    }
+    if (record.weeklyRecords.week3Ns || record.weeklyRecords.week3Pt) {
+      sessionRecords.push({
+        id: `week3-${Date.now()}`,
+        ns: record.weeklyRecords.week3Ns,
+        ptOtSt: record.weeklyRecords.week3Pt,
+      });
+    }
+    if (record.weeklyRecords.week4Ns || record.weeklyRecords.week4Pt) {
+      sessionRecords.push({
+        id: `week4-${Date.now()}`,
+        ns: record.weeklyRecords.week4Ns,
+        ptOtSt: record.weeklyRecords.week4Pt,
+      });
+    }
+
     setPreviousMonth({
       diseaseProgress: record.diseaseProgress,
       nursingContent: record.nursingContent,
@@ -68,20 +138,7 @@ export default function Home() {
       familyRelations: record.familyRelations,
       specialNotes: record.specialNotes,
       ptOtStContent: record.ptOtStContent,
-      weeklyRecords: {
-        ns: [
-          record.weeklyRecords.week1Ns,
-          record.weeklyRecords.week2Ns,
-          record.weeklyRecords.week3Ns,
-          record.weeklyRecords.week4Ns,
-        ],
-        ptOtSt: [
-          record.weeklyRecords.week1Pt,
-          record.weeklyRecords.week2Pt,
-          record.weeklyRecords.week3Pt,
-          record.weeklyRecords.week4Pt,
-        ],
-      },
+      sessionRecords: sessionRecords,
     });
 
     console.log('レコード選択:', record.sampleDataName);
@@ -92,16 +149,10 @@ export default function Home() {
     console.log('Sample Data Name:', sampleDataName);
     console.log('Current Month Data:', currentMonth);
     console.log('Previous Month Data:', previousMonth);
-    console.log('\n=== Weekly Records (HTML format) ===');
-    previousMonth.weeklyRecords.ns.forEach((record, index) => {
-      if (record) {
-        console.log(`Week ${index + 1} - Ns Record (HTML):`, record);
-      }
-    });
-    previousMonth.weeklyRecords.ptOtSt.forEach((record, index) => {
-      if (record) {
-        console.log(`Week ${index + 1} - PT/OT/ST Record (HTML):`, record);
-      }
+    console.log('\n=== Previous Month Session Records (HTML format) ===');
+    previousMonth.sessionRecords.forEach((record, index) => {
+      console.log(`Session ${index + 1} - Ns Record (HTML):`, record.ns);
+      console.log(`Session ${index + 1} - PT/OT/ST Record (HTML):`, record.ptOtSt);
     });
     // Implement register logic here
   };
@@ -201,37 +252,43 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Weekly Records Section */}
+            {/* Session Records Section */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-              <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6 pb-3 border-b-2 border-green-500">
-                前月の訪問看護記録書Ⅱ
-              </h2>
-              
+              <div className="flex justify-between items-center mb-6 pb-3 border-b-2 border-green-500">
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+                  前月の訪問看護記録書Ⅱ
+                </h2>
+                <button
+                  onClick={handleAddSession}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg
+                             transition-all duration-200 shadow-md hover:shadow-lg
+                             active:scale-95 flex items-center gap-2"
+                >
+                  <span className="text-lg">+</span>
+                  回を追加
+                </button>
+              </div>
+
               <div className="space-y-4">
-                {[0, 1, 2, 3].map((index) => (
-                  <WeeklyRecordSection
-                    key={index}
-                    weekNumber={index + 1}
-                    nsValue={previousMonth.weeklyRecords.ns[index]}
-                    ptValue={previousMonth.weeklyRecords.ptOtSt[index]}
-                    onNsChange={(value) => {
-                      const newNs = [...previousMonth.weeklyRecords.ns];
-                      newNs[index] = value;
-                      setPreviousMonth({
-                        ...previousMonth,
-                        weeklyRecords: { ...previousMonth.weeklyRecords, ns: newNs },
-                      });
-                    }}
-                    onPtChange={(value) => {
-                      const newPtOtSt = [...previousMonth.weeklyRecords.ptOtSt];
-                      newPtOtSt[index] = value;
-                      setPreviousMonth({
-                        ...previousMonth,
-                        weeklyRecords: { ...previousMonth.weeklyRecords, ptOtSt: newPtOtSt },
-                      });
-                    }}
-                  />
-                ))}
+                {previousMonth.sessionRecords.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                    <p className="mb-2">訪問看護記録がありません</p>
+                    <p className="text-sm">「回を追加」ボタンをクリックして記録を追加してください</p>
+                  </div>
+                ) : (
+                  previousMonth.sessionRecords.map((session, index) => (
+                    <SessionRecordSection
+                      key={session.id}
+                      sessionNumber={index + 1}
+                      nsValue={session.ns}
+                      ptValue={session.ptOtSt}
+                      onNsChange={(value) => handleSessionNsChange(session.id, value)}
+                      onPtChange={(value) => handleSessionPtChange(session.id, value)}
+                      onRemove={() => handleRemoveSession(session.id)}
+                      showRemoveButton={true}
+                    />
+                  ))
+                )}
               </div>
             </div>
           </div>
