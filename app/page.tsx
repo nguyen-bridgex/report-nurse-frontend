@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { TextAreaField } from './components/TextAreaField';
 import { SessionRecordSection } from './components/SessionRecordSection';
 import { RecordData, SearchDialog } from './components/SearchDialog';
+import axios from 'axios';
 
 interface SessionRecord {
   id: string;
@@ -34,6 +35,7 @@ interface CurrentMonthData {
 export default function Home() {
   const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
   const [sampleDataName, setSampleDataName] = useState('');
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   
   const [previousMonth, setPreviousMonth] = useState<PreviousMonthData>({
     diseaseProgress: '',
@@ -157,11 +159,53 @@ export default function Home() {
     // Implement register logic here
   };
 
-  const handleGenerateAIReport = () => {
-    console.log('=== AI報告書生成 ===');
-    console.log('Previous Month Data (including formatted weekly records):', previousMonth);
-    console.log('Current Month Data:', currentMonth);
-    // Implement AI report generation logic here
+  const handleGenerateAIReport = async () => {
+    setIsGeneratingReport(true);
+    
+    try {
+      console.log('=== AI報告書生成 ===');
+      console.log('Previous Month Data (including session records):', previousMonth);
+      console.log('Current Month Data:', currentMonth);
+
+      const apiUrl = 'https://c3jh0qba9f.execute-api.ap-northeast-1.amazonaws.com/prod/summary';
+      const response = await axios.post(apiUrl, {
+          "title": sampleDataName,
+          "illness_course": previousMonth.diseaseProgress,
+          "nursing_service": previousMonth.nursingContent,
+          "home_care_situation": previousMonth.homeCareStatus,
+          "mental_style": previousMonth.familyRelations,
+          "special_notes": previousMonth.specialNotes,
+          "contents": previousMonth.ptOtStContent,
+          "weekly_reports": previousMonth.sessionRecords.map(record => ({
+            "week_number": record.id,
+            "type": record.ns,
+            "content": record.ptOtSt,
+          })),
+      });
+      const generatedData = response.data;
+          
+      // Populate current month fields with generated data
+      setCurrentMonth({
+        diseaseProgress: generatedData.summary.illness_course,
+        nursingContent: generatedData.summary.nursing_service,
+        homeCareStatus: generatedData.summary.home_care_situation,
+        familyRelations: generatedData.summary.mental_style,
+        specialNotes: generatedData.summary.special_notes,
+        ptOtStContent: generatedData.summary.contents,
+        feedback: '', // Keep feedback empty
+      });
+      
+      // Set sample data name if not already set
+      if (!sampleDataName) {
+        setSampleDataName(generatedData.summary.title);
+      }
+      
+      console.log('✅ AI報告書生成完了');
+    } catch (error) {
+      console.error('❌ AI報告書生成エラー:', error);
+    } finally {
+      setIsGeneratingReport(false);
+    }
   };
 
   return (
@@ -402,12 +446,21 @@ export default function Home() {
                 </button>
                 <button
                   onClick={handleGenerateAIReport}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 
-                             hover:from-purple-700 hover:to-indigo-700 text-white font-semibold rounded-lg
+                  disabled={isGeneratingReport}
+                  className={`flex-1 px-6 py-3 text-white font-semibold rounded-lg
                              transition-all duration-200 shadow-md hover:shadow-lg
-                             active:scale-95"
+                             active:scale-95 flex items-center justify-center gap-2
+                             ${isGeneratingReport 
+                               ? 'bg-gray-400 cursor-not-allowed' 
+                               : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700'}`}
                 >
-                  AI報告書生成
+                  {isGeneratingReport && (
+                    <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  )}
+                  {isGeneratingReport ? '生成中...' : 'AI報告書生成'}
                 </button>
               </div>
             </div>
