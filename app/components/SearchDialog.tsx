@@ -114,16 +114,20 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
   isOpen,
   onClose,
   onSelect,
-  searchQuery,
 }) => {
   const [records, setRecords] = useState<RecordData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchInput, setSearchInput] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   // Fetch data when dialog opens
   useEffect(() => {
     if (isOpen) {
       fetchRecords();
+      setSearchInput('');
+      setCurrentPage(1);
     }
   }, [isOpen]);
 
@@ -145,14 +149,30 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
 
   if (!isOpen) return null;
 
-  // Filter records based on search query
-  const filteredRecords = searchQuery
+  // Filter records based on search input
+  const filteredRecords = searchInput
     ? records.filter((record) =>
-        record.sampleDataName.toLowerCase().includes(searchQuery.toLowerCase())
+        record.sampleDataName.toLowerCase().includes(searchInput.toLowerCase())
       )
     : records;
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredRecords.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedRecords = filteredRecords.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    setCurrentPage(1); // Reset to first page when searching
+  };
+
   const truncateText = (text: string, maxLength: number = 50) => {
+    if(!text) return '';
     // Remove HTML tags for preview
     const plainText = text.replace(/<[^>]*>/g, '');
     return plainText.length > maxLength
@@ -164,16 +184,40 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-            検索結果
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl"
-          >
-            ×
-          </button>
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+              検索結果
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl"
+            >
+              ×
+            </button>
+          </div>
+          
+          {/* Search Input */}
+          <div className="relative">
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="サンプルデータ名で検索..."
+              className="w-full px-4 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-lg
+                         focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                         dark:bg-gray-700 dark:text-white
+                         transition-all duration-200"
+            />
+            <svg
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
         </div>
 
         {/* Content */}
@@ -205,7 +249,7 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
             </div>
           ) : (
             <div className="space-y-4">
-              {filteredRecords.map((record) => (
+              {paginatedRecords.map((record) => (
                 <div
                   key={record.id}
                   className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
@@ -335,6 +379,38 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
             <span className="text-sm text-gray-600 dark:text-gray-400">
               {loading ? '読み込み中...' : `${filteredRecords.length}件の結果`}
             </span>
+            
+            {/* Pagination Controls */}
+            {!loading && totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className={`px-3 py-1 rounded-lg font-medium transition-all duration-200
+                             ${currentPage === 1 
+                               ? 'bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500' 
+                               : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'}`}
+                >
+                  前へ
+                </button>
+                
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  {currentPage} / {totalPages}
+                </span>
+                
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className={`px-3 py-1 rounded-lg font-medium transition-all duration-200
+                             ${currentPage === totalPages 
+                               ? 'bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500' 
+                               : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'}`}
+                >
+                  次へ
+                </button>
+              </div>
+            )}
+            
             <button
               onClick={onClose}
               className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg

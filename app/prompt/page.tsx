@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { TextAreaField } from './components/TextAreaField';
-import { SessionRecordSection } from './components/SessionRecordSection';
-import { RecordData, SearchDialog } from './components/SearchDialog';
-import { GeneratedSummaryDialog } from './components/GeneratedSummaryDialog';
+import { TextAreaField } from '../components/TextAreaField';
+import { SessionRecordSection } from '../components/SessionRecordSection';
+import { RecordData, SearchDialog } from '../components/SearchDialog';
+import { PromptData, PromptSelectDialog } from '../components/PromptSelectDialog';
+import { GeneratedSummaryDialog } from '../components/GeneratedSummaryDialog';
 import axios from 'axios';
+import Link from 'next/link';
 
 interface SessionRecord {
   id: string;
@@ -33,11 +35,13 @@ interface CurrentMonthData {
   feedback: string;
 }
 
-export default function Home() {
+export default function PromptPage() {
   const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
+  const [isPromptDialogOpen, setIsPromptDialogOpen] = useState(false);
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
   const [sampleDataName, setSampleDataName] = useState('');
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [selectedPrompt, setSelectedPrompt] = useState<PromptData | null>(null);
   const [sourceNursingReportId, setSourceNursingReportId] = useState('');
   
   const [previousMonth, setPreviousMonth] = useState<PreviousMonthData>({
@@ -179,30 +183,21 @@ export default function Home() {
     }
   };
 
-  const handleGenerateAIReport = async () => {
+  const handleGenerateAIReport = () => {
+    // Open prompt selection dialog
+    setIsPromptDialogOpen(true);
+  };
+
+  const handlePromptSelect = async (prompt: PromptData) => {
+    setSelectedPrompt(prompt);
     setIsGeneratingReport(true);
     
     try {
       console.log('=== AI報告書生成 ===');
-      
-      // Get selected prompt ID from localStorage
-      const selectedPromptId = localStorage.getItem('selectedPromptId') || '1';
-      console.log('Selected Prompt ID:', selectedPromptId);
-      
-      // Fetch the prompt instruction
-      let promptInstruction = '';
-      try {
-        const promptUrl = `https://c3jh0qba9f.execute-api.ap-northeast-1.amazonaws.com/prod/prompts/${selectedPromptId}`;
-        const promptResponse = await axios.get(promptUrl);
-        promptInstruction = promptResponse.data.instruction;
-        console.log('Prompt Instruction:', promptInstruction);
-      } catch (promptError) {
-        console.error('プロンプトの取得に失敗しました:', promptError);
-        alert('プロンプトの取得に失敗しました。デフォルトのプロンプトを使用します。');
-      }
-      
+      console.log('Selected Prompt:', prompt);
       console.log('Previous Month Data (including session records):', previousMonth);
       console.log('Current Month Data:', currentMonth);
+      console.log('Selected Prompt:', selectedPrompt);
 
       const apiUrl = 'https://c3jh0qba9f.execute-api.ap-northeast-1.amazonaws.com/prod/summary';
       const response = await axios.post(apiUrl, {
@@ -213,7 +208,7 @@ export default function Home() {
           "mental_style": previousMonth.familyRelations,
           "special_notes": previousMonth.specialNotes,
           "contents": previousMonth.ptOtStContent,
-          "instruction": promptInstruction, // Include prompt instruction
+          "instruction": prompt.instruction, // Include prompt instruction in API call
           "weekly_reports": previousMonth.sessionRecords.map(record => ({
             "week_number": record.id,
             "type": record.ns,
@@ -241,7 +236,6 @@ export default function Home() {
       console.log('✅ AI報告書生成完了');
     } catch (error) {
       console.error('❌ AI報告書生成エラー:', error);
-      alert('AI報告書の生成に失敗しました。もう一度お試しください。');
     } finally {
       setIsGeneratingReport(false);
     }
@@ -254,15 +248,15 @@ export default function Home() {
         <div className="container mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
-              AI 報告書テスト画面イメージ
+              AI 報告書テスト画面イメージ（プロンプト版）
             </h1>
-            {/* <Link
-              href="/prompt"
-              className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg
+            <Link
+              href="/"
+              className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg
                          transition-all duration-200 shadow-md hover:shadow-lg"
             >
-              プロンプト版へ
-            </Link> */}
+              通常版へ戻る
+            </Link>
           </div>
         </div>
       </header>
@@ -524,6 +518,13 @@ export default function Home() {
         searchQuery=""
       />
 
+      {/* Prompt Select Dialog */}
+      <PromptSelectDialog
+        isOpen={isPromptDialogOpen}
+        onClose={() => setIsPromptDialogOpen(false)}
+        onSelect={handlePromptSelect}
+      />
+
       {/* Generated Summary Dialog */}
       <GeneratedSummaryDialog
         isOpen={isSummaryDialogOpen}
@@ -532,3 +533,4 @@ export default function Home() {
     </div>
   );
 }
+
