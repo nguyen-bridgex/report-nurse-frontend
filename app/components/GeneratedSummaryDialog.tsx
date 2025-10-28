@@ -3,6 +3,16 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
+// List item with minimal data
+export interface GeneratedSummaryListItem {
+  id: string;
+  source_nursing_report_id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Full detail data
 export interface GeneratedSummaryData {
   id: string;
   source_nursing_report_id: string;
@@ -19,7 +29,7 @@ export interface GeneratedSummaryData {
 }
 
 export interface GeneratedSummaryResponse {
-  items: GeneratedSummaryData[];
+  items: GeneratedSummaryListItem[];
 }
 
 interface GeneratedSummaryDialogProps {
@@ -33,10 +43,12 @@ export const GeneratedSummaryDialog: React.FC<GeneratedSummaryDialogProps> = ({
   isOpen,
   onClose,
 }) => {
-  const [summaries, setSummaries] = useState<GeneratedSummaryData[]>([]);
+  const [summaries, setSummaries] = useState<GeneratedSummaryListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedSummary, setSelectedSummary] = useState<GeneratedSummaryData | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -59,19 +71,24 @@ export const GeneratedSummaryDialog: React.FC<GeneratedSummaryDialogProps> = ({
     }
   };
 
-  const handleViewDetails = (summary: GeneratedSummaryData) => {
-    setSelectedSummary(summary);
+  const handleViewDetails = async (summary: GeneratedSummaryListItem) => {
+    setLoadingDetails(true);
+    setDetailsError(null);
+    
+    try {
+      const response = await axios.get<GeneratedSummaryData>(`${API_URL}/${summary.id}`);
+      setSelectedSummary(response.data);
+    } catch (err) {
+      console.error('Failed to fetch summary details:', err);
+      setDetailsError('レポートの詳細取得に失敗しました。');
+    } finally {
+      setLoadingDetails(false);
+    }
   };
 
   const handleCloseDetails = () => {
     setSelectedSummary(null);
-  };
-
-  const truncateText = (text: string, maxLength: number = 50) => {
-    if(!text) return '';
-    return text.length > maxLength
-      ? text.substring(0, maxLength) + '...'
-      : text;
+    setDetailsError(null);
   };
 
   if (!isOpen) return null;
@@ -128,45 +145,17 @@ export const GeneratedSummaryDialog: React.FC<GeneratedSummaryDialogProps> = ({
                     {summary.title}
                   </h3>
 
-                  {/* Summary Info */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm mb-3">
+                  {/* Metadata */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm mb-3 text-gray-600 dark:text-gray-400">
                     <div>
-                      <span className="font-medium text-gray-600 dark:text-gray-400">病状の経過: </span>
-                      <span className="text-gray-700 dark:text-gray-300">
-                        {truncateText(summary.illness_course, 40)}
-                      </span>
+                      <span className="font-medium">作成日: </span>
+                      <span>{new Date(summary.created_at).toLocaleString('ja-JP')}</span>
                     </div>
-                    
                     <div>
-                      <span className="font-medium text-gray-600 dark:text-gray-400">看護内容: </span>
-                      <span className="text-gray-700 dark:text-gray-300">
-                        {truncateText(summary.nursing_service, 40)}
-                      </span>
-                    </div>
-                    
-                    <div>
-                      <span className="font-medium text-gray-600 dark:text-gray-400">介護状況: </span>
-                      <span className="text-gray-700 dark:text-gray-300">
-                        {truncateText(summary.home_care_situation, 40)}
-                      </span>
-                    </div>
-                    
-                    <div>
-                      <span className="font-medium text-gray-600 dark:text-gray-400">家族関係: </span>
-                      <span className="text-gray-700 dark:text-gray-300">
-                        {truncateText(summary.mental_style, 40)}
-                      </span>
+                      <span className="font-medium">更新日: </span>
+                      <span>{new Date(summary.updated_at).toLocaleString('ja-JP')}</span>
                     </div>
                   </div>
-
-                  {summary.feedback && (
-                    <div className="mb-3 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded">
-                      <span className="font-medium text-gray-600 dark:text-gray-400 text-sm">フィードバック: </span>
-                      <span className="text-gray-700 dark:text-gray-300 text-sm">
-                        {truncateText(summary.feedback, 60)}
-                      </span>
-                    </div>
-                  )}
 
                   <button
                     onClick={() => handleViewDetails(summary)}
@@ -199,14 +188,14 @@ export const GeneratedSummaryDialog: React.FC<GeneratedSummaryDialogProps> = ({
       </div>
 
       {/* Detail View Modal */}
-      {selectedSummary && (
+      {(selectedSummary || loadingDetails) && (
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-black bg-opacity-70 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
             {/* Detail Header */}
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
               <div className="flex justify-between items-center">
                 <h3 className="text-2xl font-bold text-gray-800 dark:text-white">
-                  {selectedSummary.title}
+                  {loadingDetails ? '読み込み中...' : selectedSummary?.title}
                 </h3>
                 <button
                   onClick={handleCloseDetails}
@@ -219,70 +208,90 @@ export const GeneratedSummaryDialog: React.FC<GeneratedSummaryDialogProps> = ({
 
             {/* Detail Content */}
             <div className="flex-1 overflow-auto p-6">
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">病状の経過</h4>
-                  <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap bg-gray-50 dark:bg-gray-900 p-3 rounded">
-                    {selectedSummary.illness_course}
-                  </p>
+              {loadingDetails ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mb-4"></div>
+                  <p className="text-gray-600 dark:text-gray-400">詳細を読み込んでいます...</p>
                 </div>
-
-                <div>
-                  <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">看護（リハビリテーション）の内容</h4>
-                  <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap bg-gray-50 dark:bg-gray-900 p-3 rounded">
-                    {selectedSummary.nursing_service}
-                  </p>
+              ) : detailsError ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <p className="text-red-600 dark:text-red-400 text-center mb-4">{detailsError}</p>
+                  <button
+                    onClick={handleCloseDetails}
+                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg
+                               transition-all duration-200 shadow-md hover:shadow-lg"
+                  >
+                    閉じる
+                  </button>
                 </div>
-
-                <div>
-                  <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">家庭での介護の状況</h4>
-                  <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap bg-gray-50 dark:bg-gray-900 p-3 rounded">
-                    {selectedSummary.home_care_situation}
-                  </p>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">（精神様式：家族等との関係）</h4>
-                  <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap bg-gray-50 dark:bg-gray-900 p-3 rounded">
-                    {selectedSummary.mental_style}
-                  </p>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">特記すべき事項</h4>
-                  <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap bg-gray-50 dark:bg-gray-900 p-3 rounded">
-                    {selectedSummary.special_notes}
-                  </p>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">PT・OT・STが行った訪問看護、家族等への指導、リスク管理等の内容</h4>
-                  <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap bg-gray-50 dark:bg-gray-900 p-3 rounded">
-                    {selectedSummary.contents}
-                  </p>
-                </div>
-
-                {selectedSummary.feedback && (
+              ) : selectedSummary ? (
+                <div className="space-y-4">
                   <div>
-                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">フィードバック</h4>
-                    <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded">
-                      {selectedSummary.feedback}
+                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">病状の経過</h4>
+                    <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap bg-gray-50 dark:bg-gray-900 p-3 rounded">
+                      {selectedSummary.illness_course}
                     </p>
                   </div>
-                )}
-              </div>
+
+                  <div>
+                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">看護（リハビリテーション）の内容</h4>
+                    <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap bg-gray-50 dark:bg-gray-900 p-3 rounded">
+                      {selectedSummary.nursing_service}
+                    </p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">家庭での介護の状況</h4>
+                    <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap bg-gray-50 dark:bg-gray-900 p-3 rounded">
+                      {selectedSummary.home_care_situation}
+                    </p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">（精神様式：家族等との関係）</h4>
+                    <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap bg-gray-50 dark:bg-gray-900 p-3 rounded">
+                      {selectedSummary.mental_style}
+                    </p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">特記すべき事項</h4>
+                    <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap bg-gray-50 dark:bg-gray-900 p-3 rounded">
+                      {selectedSummary.special_notes}
+                    </p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">PT・OT・STが行った訪問看護、家族等への指導、リスク管理等の内容</h4>
+                    <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap bg-gray-50 dark:bg-gray-900 p-3 rounded">
+                      {selectedSummary.contents}
+                    </p>
+                  </div>
+
+                  {selectedSummary.feedback && (
+                    <div>
+                      <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">フィードバック</h4>
+                      <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded">
+                        {selectedSummary.feedback}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : null}
             </div>
 
             {/* Detail Footer */}
-            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-              <button
-                onClick={handleCloseDetails}
-                className="w-full px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg
-                           transition-all duration-200 shadow-md hover:shadow-lg"
-              >
-                閉じる
-              </button>
-            </div>
+            {!loadingDetails && (
+              <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                <button
+                  onClick={handleCloseDetails}
+                  className="w-full px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg
+                             transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  閉じる
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
