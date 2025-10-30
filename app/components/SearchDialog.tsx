@@ -294,13 +294,6 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
                         </div>
                         
                         <div>
-                          <span className="font-medium text-gray-600 dark:text-gray-400">家族関係: </span>
-                          <span className="text-gray-700 dark:text-gray-300">
-                            {truncateText(record.familyRelations, 40)}
-                          </span>
-                        </div>
-                        
-                        <div>
                           <span className="font-medium text-gray-600 dark:text-gray-400">特記事項: </span>
                           <span className="text-gray-700 dark:text-gray-300">
                             {truncateText(record.specialNotes, 40)}

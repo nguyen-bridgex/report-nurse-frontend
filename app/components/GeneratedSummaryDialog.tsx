@@ -241,16 +241,9 @@ export const GeneratedSummaryDialog: React.FC<GeneratedSummaryDialogProps> = ({
                   </div>
 
                   <div>
-                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">家庭での介護の状況</h4>
+                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">家庭での介護の状況（精神様式：家族等との関係）</h4>
                     <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap bg-gray-50 dark:bg-gray-900 p-3 rounded">
                       {selectedSummary.home_care_situation}
-                    </p>
-                  </div>
-
-                  <div>
-                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">（精神様式：家族等との関係）</h4>
-                    <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap bg-gray-50 dark:bg-gray-900 p-3 rounded">
-                      {selectedSummary.mental_style}
                     </p>
                   </div>
 

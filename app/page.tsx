@@ -17,7 +17,6 @@ interface PreviousMonthData {
   diseaseProgress: string;
   nursingContent: string;
   homeCareStatus: string;
-  familyRelations: string;
   specialNotes: string;
   ptOtStContent: string;
   sessionRecords: SessionRecord[];
@@ -27,7 +26,6 @@ interface CurrentMonthData {
   diseaseProgress: string;
   nursingContent: string;
   homeCareStatus: string;
-  familyRelations: string;
   specialNotes: string;
   ptOtStContent: string;
   feedback: string;
@@ -44,7 +42,6 @@ export default function Home() {
     diseaseProgress: '',
     nursingContent: '',
     homeCareStatus: '',
-    familyRelations: '',
     specialNotes: '',
     ptOtStContent: '',
     sessionRecords: [],
@@ -54,7 +51,6 @@ export default function Home() {
     diseaseProgress: '',
     nursingContent: '',
     homeCareStatus: '',
-    familyRelations: '',
     specialNotes: '',
     ptOtStContent: '',
     feedback: '',
@@ -140,7 +136,6 @@ export default function Home() {
       diseaseProgress: record.diseaseProgress,
       nursingContent: record.nursingContent,
       homeCareStatus: record.homeCareStatus,
-      familyRelations: record.familyRelations,
       specialNotes: record.specialNotes,
       ptOtStContent: record.ptOtStContent,
       sessionRecords: sessionRecords,
@@ -163,7 +158,7 @@ export default function Home() {
         illness_course: currentMonth.diseaseProgress,
         nursing_service: currentMonth.nursingContent,
         home_care_situation: currentMonth.homeCareStatus,
-        mental_style: currentMonth.familyRelations,
+        mental_style: '',
         special_notes: currentMonth.specialNotes,
         contents: currentMonth.ptOtStContent,
         feedback: currentMonth.feedback,
@@ -210,7 +205,7 @@ export default function Home() {
           "illness_course": previousMonth.diseaseProgress,
           "nursing_service": previousMonth.nursingContent,
           "home_care_situation": previousMonth.homeCareStatus,
-          "mental_style": previousMonth.familyRelations,
+          "mental_style": '',
           "special_notes": previousMonth.specialNotes,
           "contents": previousMonth.ptOtStContent,
           "instruction": promptInstruction, // Include prompt instruction
@@ -227,7 +222,6 @@ export default function Home() {
         diseaseProgress: generatedData.summary.illness_course,
         nursingContent: generatedData.summary.nursing_service,
         homeCareStatus: generatedData.summary.home_care_situation,
-        familyRelations: generatedData.summary.mental_style,
         specialNotes: generatedData.summary.special_notes,
         ptOtStContent: generatedData.summary.contents,
         feedback: '', // Keep feedback empty
@@ -307,19 +301,10 @@ export default function Home() {
                 />
                 
                 <TextAreaField
-                  label="家庭での介護の状況"
+                  label="家庭での介護の状況（精神様式：家族等との関係）"
                   value={previousMonth.homeCareStatus}
                   onChange={(value) =>
                     setPreviousMonth({ ...previousMonth, homeCareStatus: value })
-                  }
-                  rows={4}
-                />
-                
-                <TextAreaField
-                  label="（精神様式：家族等との関係）"
-                  value={previousMonth.familyRelations}
-                  onChange={(value) =>
-                    setPreviousMonth({ ...previousMonth, familyRelations: value })
                   }
                   rows={4}
                 />
@@ -416,23 +401,13 @@ export default function Home() {
                 />
                 
                 <TextAreaField
-                  label="家庭での介護の状況"
+                  label="家庭での介護の状況（精神様式：家族等との関係）"
                   value={currentMonth.homeCareStatus}
                   onChange={(value) =>
                     setCurrentMonth({ ...currentMonth, homeCareStatus: value })
                   }
                   rows={4}
                   placeholder="家庭での介護の状況を入力してください"
-                />
-                
-                <TextAreaField
-                  label="（精神様式：家族等との関係）"
-                  value={currentMonth.familyRelations}
-                  onChange={(value) =>
-                    setCurrentMonth({ ...currentMonth, familyRelations: value })
-                  }
-                  rows={4}
-                  placeholder="家族等との関係を入力してください"
                 />
                 
                 <TextAreaField
