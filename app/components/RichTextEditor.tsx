@@ -31,7 +31,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[80px] p-3',
+        class: 'prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[150px] p-3',
       },
     },
     immediatelyRender: false,
@@ -74,7 +74,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       </div>
 
       {/* Editor Content */}
-      <div className="min-h-[80px]">
+      <div className="min-h-[150px]">
         <EditorContent editor={editor} />
       </div>
     </div>

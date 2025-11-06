@@ -38,7 +38,9 @@ export default function PromptPage() {
   const [isPromptDialogOpen, setIsPromptDialogOpen] = useState(false);
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
   const [sampleDataName, setSampleDataName] = useState('');
+  const [previousMonthName, setPreviousMonthName] = useState('');
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [isRegisteringPrevious, setIsRegisteringPrevious] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState<PromptData | null>(null);
   const [sourceNursingReportId, setSourceNursingReportId] = useState('');
   
@@ -149,6 +151,67 @@ export default function PromptPage() {
     setSourceNursingReportId(record.id);
 
     console.log('レコード選択:', record.sampleDataName);
+  };
+
+  const handleRegisterPreviousMonth = async () => {
+    try {
+      setIsRegisteringPrevious(true);
+      console.log('=== 前月データ登録開始 ===');
+      
+      const apiUrl = 'https://c3jh0qba9f.execute-api.ap-northeast-1.amazonaws.com/prod/nursing-reports';
+      
+      // Format weekly reports according to API structure
+      const weeklyReportsMap = new Map<number, { title: string; content: string; type: string }[]>();
+      
+      previousMonth.sessionRecords.forEach((record, index) => {
+        const weekNumber = index + 1;
+        if (!weeklyReportsMap.has(weekNumber)) {
+          weeklyReportsMap.set(weekNumber, []);
+        }
+        
+        const reports = [];
+        if (record.ns) {
+          reports.push({
+            title: `第${weekNumber}週`,
+            content: record.ns,
+            type: 'NS'
+          });
+        }
+        if (record.ptOtSt) {
+          reports.push({
+            title: `第${weekNumber}週`,
+            content: record.ptOtSt,
+            type: 'PT・OT・ST'
+          });
+        }
+        
+        weeklyReportsMap.set(weekNumber, reports);
+      });
+      
+      const weekly_reports = Array.from(weeklyReportsMap.entries()).map(([week_number, reports]) => ({
+        week_number,
+        reports
+      }));
+      
+      await axios.post(apiUrl, {
+        title: previousMonthName,
+        illness_course: previousMonth.diseaseProgress,
+        nursing_service: previousMonth.nursingContent,
+        home_care_situation: previousMonth.homeCareStatus,
+        mental_style: '',
+        special_notes: previousMonth.specialNotes,
+        contents: previousMonth.ptOtStContent,
+        weekly_reports
+      });
+      
+      console.log('✅ 前月データ登録完了');
+      alert('前月データの登録が完了しました。');
+    } catch (error) {
+      console.error('❌ 前月データ登録エラー:', error);
+      alert('前月データの登録に失敗しました。もう一度お試しください。');
+    } finally {
+      setIsRegisteringPrevious(false);
+    }
   };
 
   const handleRegister = async () => {
@@ -282,7 +345,7 @@ export default function PromptPage() {
                   onChange={(value) =>
                     setPreviousMonth({ ...previousMonth, diseaseProgress: value })
                   }
-                  rows={4}
+                  rows={8}
                 />
                 
                 <TextAreaField
@@ -291,7 +354,7 @@ export default function PromptPage() {
                   onChange={(value) =>
                     setPreviousMonth({ ...previousMonth, nursingContent: value })
                   }
-                  rows={4}
+                  rows={8}
                 />
                 
                 <TextAreaField
@@ -320,6 +383,44 @@ export default function PromptPage() {
                   }
                   rows={4}
                 />
+
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    データ名
+                  </label>
+                  <input
+                    type="text"
+                    value={previousMonthName}
+                    onChange={(e) => setPreviousMonthName(e.target.value)}
+                    placeholder="データ名を入力してください（例：稲川誠一郎_NS_2025_08）"
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg 
+                               focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                               dark:bg-gray-900 dark:text-white
+                               transition-all duration-200"
+                  />
+                </div>
+              </div>
+
+              {/* Register Previous Month Button */}
+              <div className="mt-6">
+                <button
+                  onClick={handleRegisterPreviousMonth}
+                  disabled={isRegisteringPrevious}
+                  className={`w-full px-6 py-3 text-white font-semibold rounded-lg
+                             transition-all duration-200 shadow-md hover:shadow-lg
+                             active:scale-95 flex items-center justify-center gap-2
+                             ${isRegisteringPrevious 
+                               ? 'bg-gray-400 cursor-not-allowed' 
+                               : 'bg-blue-600 hover:bg-blue-700'}`}
+                >
+                  {isRegisteringPrevious && (
+                    <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  )}
+                  {isRegisteringPrevious ? '登録中...' : '前月データを登録'}
+                </button>
               </div>
             </div>
 
@@ -380,7 +481,7 @@ export default function PromptPage() {
                   onChange={(value) =>
                     setCurrentMonth({ ...currentMonth, diseaseProgress: value })
                   }
-                  rows={4}
+                  rows={8}
                   placeholder="病状の経過を入力してください"
                 />
                 
@@ -390,7 +491,7 @@ export default function PromptPage() {
                   onChange={(value) =>
                     setCurrentMonth({ ...currentMonth, nursingContent: value })
                   }
-                  rows={4}
+                  rows={8}
                   placeholder="看護の内容を入力してください"
                 />
                 
