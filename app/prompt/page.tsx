@@ -6,7 +6,7 @@ import { SessionRecordSection } from '../components/SessionRecordSection';
 import { RecordData, SearchDialog } from '../components/SearchDialog';
 import { PromptData, PromptSelectDialog } from '../components/PromptSelectDialog';
 import { GeneratedSummaryDialog } from '../components/GeneratedSummaryDialog';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import Link from 'next/link';
 
 interface SessionRecord {
@@ -293,35 +293,37 @@ export default function PromptPage() {
       }
       
       console.log('✅ AI報告書生成完了');
-    } catch (error: any) {
+    } catch (error) {
       console.error('❌ AI報告書生成エラー:', error);
       
-      // Better error messages
-      let errorMessage = 'AI報告書の生成に失敗しました。';
-      
-      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-        errorMessage = 'リクエストがタイムアウトしました。処理に時間がかかりすぎています。もう一度お試しください。';
-      } else if (error.response) {
-        // Server responded with error status
-        const status = error.response.status;
-        if (status === 400) {
-          errorMessage = 'リクエストが無効です。入力データを確認してください。';
-        } else if (status === 401 || status === 403) {
-          errorMessage = '認証エラーが発生しました。';
-        } else if (status === 404) {
-          errorMessage = 'APIエンドポイントが見つかりませんでした。';
-        } else if (status === 500) {
-          errorMessage = 'サーバーエラーが発生しました。しばらく待ってから再度お試しください。';
-        } else if (status === 502 || status === 503 || status === 504) {
-          errorMessage = 'サーバーが一時的に利用できません。しばらく待ってから再度お試しください。';
-        } else {
-          errorMessage = `エラーが発生しました（ステータスコード: ${status}）。もう一度お試しください。`;
+      if (error instanceof AxiosError) {  
+        // Better error messages
+        let errorMessage = 'AI報告書の生成に失敗しました。';
+        
+        if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+          errorMessage = 'リクエストがタイムアウトしました。処理に時間がかかりすぎています。もう一度お試しください。';
+        } else if (error.response) {
+          // Server responded with error status
+          const status = error.response.status;
+          if (status === 400) {
+            errorMessage = 'リクエストが無効です。入力データを確認してください。';
+          } else if (status === 401 || status === 403) {
+            errorMessage = '認証エラーが発生しました。';
+          } else if (status === 404) {
+            errorMessage = 'APIエンドポイントが見つかりませんでした。';
+          } else if (status === 500) {
+            errorMessage = 'サーバーエラーが発生しました。しばらく待ってから再度お試しください。';
+          } else if (status === 502 || status === 503 || status === 504) {
+            errorMessage = 'サーバーが一時的に利用できません。しばらく待ってから再度お試しください。';
+          } else {
+            errorMessage = `エラーが発生しました（ステータスコード: ${status}）。もう一度お試しください。`;
+          }
+        } else if (error.request) {
+          errorMessage = '要求が失敗しました。もう一度お試しください。';
         }
-      } else if (error.request) {
-        errorMessage = 'サーバーに接続できませんでした。ネットワーク接続を確認してください。';
+        
+        alert(errorMessage);
       }
-      
-      alert(errorMessage);
     } finally {
       setIsGeneratingReport(false);
     }
