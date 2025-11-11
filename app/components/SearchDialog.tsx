@@ -120,6 +120,7 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const itemsPerPage = 5;
 
   // Fetch data when dialog opens
@@ -144,6 +145,32 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
       setError('データの取得に失敗しました。もう一度お試しください。');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (recordId: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent selecting the record when clicking delete
+    
+    if (!confirm('このデータを削除してもよろしいですか？')) {
+      return;
+    }
+    
+    setDeletingId(recordId);
+    
+    try {
+      await axios.delete(`${API_URL}/${recordId}`);
+      // Remove the deleted record from the list
+      setRecords(records.filter(r => r.id !== recordId));
+      // Reset to first page if current page becomes empty
+      const newTotalPages = Math.ceil((records.length - 1) / itemsPerPage);
+      if (currentPage > newTotalPages && newTotalPages > 0) {
+        setCurrentPage(newTotalPages);
+      }
+    } catch (err) {
+      console.error('Failed to delete record:', err);
+      alert('データの削除に失敗しました。もう一度お試しください。');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -252,14 +279,28 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
               {paginatedRecords.map((record) => (
                 <div
                   key={record.id}
-                  className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                  className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors relative"
                   onClick={() => {
                     onSelect(record);
                     onClose();
                   }}
                 >
+                  {/* Delete Button */}
+                  <button
+                    onClick={(e) => handleDelete(record.id, e)}
+                    disabled={deletingId === record.id}
+                    className={`absolute top-4 right-4 px-3 py-1 text-sm font-medium rounded-lg
+                               transition-all duration-200 shadow-md hover:shadow-lg
+                               ${deletingId === record.id
+                                 ? 'bg-gray-400 text-white cursor-not-allowed'
+                                 : 'bg-red-600 hover:bg-red-700 text-white'}`}
+                    title="削除"
+                  >
+                    {deletingId === record.id ? '削除中...' : '削除'}
+                  </button>
+
                   {/* Sample Data Name - Large and prominent */}
-                  <h3 className="text-xl font-bold text-blue-600 dark:text-blue-400 mb-4">
+                  <h3 className="text-xl font-bold text-blue-600 dark:text-blue-400 mb-4 pr-20">
                     {record.sampleDataName}
                   </h3>
 
