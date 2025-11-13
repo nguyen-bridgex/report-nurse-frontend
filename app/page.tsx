@@ -262,8 +262,9 @@ export default function Home() {
       console.log('Previous Month Data (including session records):', previousMonth);
       console.log('Current Month Data:', currentMonth);
 
+      // Step 1: Submit job and get jobId
       const apiUrl = 'https://c3jh0qba9f.execute-api.ap-northeast-1.amazonaws.com/prod/summary';
-      const response = await axios.post(apiUrl, {
+      const jobResponse = await axios.post(apiUrl, {
           "title": sampleDataName,
           "illness_course": previousMonth.diseaseProgress,
           "nursing_service": previousMonth.nursingContent,
@@ -271,38 +272,79 @@ export default function Home() {
           "mental_style": '',
           "special_notes": previousMonth.specialNotes,
           "contents": previousMonth.ptOtStContent,
-          "instruction": promptInstruction, // Include prompt instruction
+          "instruction": promptInstruction,
           "weekly_reports": previousMonth.sessionRecords.map(record => ({
             "week_number": record.id,
             "type": record.ns,
             "content": record.ptOtSt,
           })),
-      }, {
-        timeout: 120000, // 120 seconds timeout
-      });
-      const generatedData = response.data;
-          
-      // Populate current month fields with generated data
-      setCurrentMonth({
-        diseaseProgress: generatedData.summary.illness_course,
-        nursingContent: generatedData.summary.nursing_service,
-        homeCareStatus: generatedData.summary.home_care_situation,
-        specialNotes: generatedData.summary.special_notes,
-        ptOtStContent: generatedData.summary.contents,
-        feedback: '', // Keep feedback empty
       });
       
-      // Set sample data name if not already set
-      if (!sampleDataName) {
-        setSampleDataName(generatedData.summary.title);
+      const { jobId } = jobResponse.data;
+      console.log('Job submitted. Job ID:', jobId);
+      
+      // Step 2: Poll for job completion
+      const jobStatusUrl = `https://c3jh0qba9f.execute-api.ap-northeast-1.amazonaws.com/prod/jobs/${jobId}`;
+      const pollInterval = 10000; // 10 seconds
+      const maxPollingTime = 120000; // 2 minutes
+      const startTime = Date.now();
+      
+      let completed = false;
+      let generatedData = null;
+      
+      while (!completed && (Date.now() - startTime) < maxPollingTime) {
+        // Wait 10 seconds before polling
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+        
+        console.log('Polling job status...');
+        const statusResponse = await axios.get(jobStatusUrl);
+        const { status, result, error } = statusResponse.data;
+        
+        console.log('Job status:', status);
+        
+        if (status === 'completed') {
+          completed = true;
+          generatedData = result;
+          console.log('✅ Job completed successfully');
+        } else if (status === 'failed') {
+          throw new Error(error || 'Job failed');
+        }
+      }
+      
+      // Check if timed out
+      if (!completed) {
+        throw new Error('TIMEOUT');
+      }
+      
+      // Step 3: Populate current month fields with generated data
+      if (generatedData && generatedData.summary) {
+        setCurrentMonth({
+          diseaseProgress: generatedData.summary.illness_course,
+          nursingContent: generatedData.summary.nursing_service,
+          homeCareStatus: generatedData.summary.home_care_situation,
+          specialNotes: generatedData.summary.special_notes,
+          ptOtStContent: generatedData.summary.contents,
+          feedback: '', // Keep feedback empty
+        });
+        
+        // Set sample data name if not already set
+        if (!sampleDataName) {
+          setSampleDataName(generatedData.summary.title);
+        }
       }
       
       console.log('✅ AI報告書生成完了');
     } catch (error) {
       console.error('❌ AI報告書生成エラー:', error);
       
+      // Check for timeout error
+      if (error instanceof Error && error.message === 'TIMEOUT') {
+        alert('処理がタイムアウトしました。2分以内に完了しませんでした。もう一度お試しください。');
+        return;
+      }
+      
       if (error instanceof AxiosError) {
-      // Better error messages
+        // Better error messages
         let errorMessage = 'AI報告書の生成に失敗しました。';
         console.log({error});
         
@@ -329,6 +371,8 @@ export default function Home() {
         }
         
         alert(errorMessage);
+      } else {
+        alert('予期しないエラーが発生しました。もう一度お試しください。');
       }
     } finally {
       setIsGeneratingReport(false);
