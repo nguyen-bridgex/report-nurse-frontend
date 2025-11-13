@@ -256,6 +256,8 @@ export default function PromptPage() {
       console.log('Previous Month Data (including session records):', previousMonth);
       console.log('Current Month Data:', currentMonth);
 
+      console.log('selected prompt', selectedPrompt);
+
       // Step 1: Submit job and get jobId
       const apiUrl = 'https://c3jh0qba9f.execute-api.ap-northeast-1.amazonaws.com/prod/summary';
       const jobResponse = await axios.post(apiUrl, {
